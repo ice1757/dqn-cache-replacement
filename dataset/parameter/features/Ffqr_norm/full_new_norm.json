@@ -1,0 +1,22 @@
+{
+    "need_feature":
+    {
+        "freq":false,
+        "Ffqr_norm":true,
+        "tg_size":false,
+        "Fts_norm":false,
+        "rect":true,
+        "Frtr_norm":false,
+        "Far":true,
+        "past_freq_l":true,
+        "past_freq_m":true,
+        "past_freq_s":true,
+        "remains":true
+    },
+    "new_req_feature":
+    {
+        "tg_size":true,
+        "Fcr":true,
+        "freq":false
+    }
+}

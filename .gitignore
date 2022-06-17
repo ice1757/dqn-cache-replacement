@@ -1,0 +1,11 @@
+logs/
+.ipynb_checkpoints/*
+DRLCache_測試.gsheet
+agents/__pycache__/*
+ENV/__pycache__/*
+.vscode/*
+test.*
+dataset/old
+dataset/pda-159-dataset
+dataset/pda-159-dataset.zip
+__pycache__/
