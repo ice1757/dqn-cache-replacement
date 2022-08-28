@@ -10,7 +10,7 @@ from absl import logging
 random.seed(1234)
 
 class Cache(object):
-    def __init__(self, file_name, user_file_name, req_size_file_name, cache_size, need_feature, new_req_feature, skip_hit, skip_evict, reward_method, penalty_parameter):
+    def __init__(self, file_name, req_size_file_name, cache_size, need_feature, new_req_feature, skip_hit, skip_evict, reward_method, penalty_parameter):
         self.file_name = file_name
         self.need_feature = need_feature
         self.new_req_feature = new_req_feature
@@ -140,11 +140,6 @@ class Cache(object):
         self.get_next_miss()
         return self.get_observe()
 
-    def tg_to_onehot(self, tg):
-        onehot = [0] * self.onehot_len
-        onehot[int(tg)-1] = 1
-        return onehot
-
     def req_to_onehot(self, req):
         onehot = [0] * self.onehot_len
         onehot[int(req)-1] = 1
@@ -184,7 +179,7 @@ class Cache(object):
         else: 								# evict
             if self.skip_evict: action -= 1
             ## method == our 時 這裡為0
-            reward = self.get_reward(action, now_victim_tz=self.cache_blocks[action], method=self.reward_method) if self.reward_method != None else 0
+            reward = self.get_reward(action, now_victim=self.cache_blocks[action], method=self.reward_method) if self.reward_method != None else 0
             if not self.remove_cache(action): 	# invalid action
                 raise "invalid action"
             else:
@@ -205,14 +200,6 @@ class Cache(object):
                     info = 'not enough'
         ## info{hit, miss, not enough}
         return self.get_observe(), reward, done, info
-
-    def card_to_tg(self, card):
-        ## convert cardid(int) to timegroup(char)
-        return self.card.get(int(card))
-
-    def tg_to_tzs(self, tg):
-        ## convert timegroup(char) to timezones(list)
-        return self.timezone_group.get(tg)
     
     def set_next_request(self):
         # data_pointer will stop in current request
@@ -248,12 +235,18 @@ class Cache(object):
     def update_cache(self):
         index = self.cache_blocks.index(self.new_request)
         self.cache_freq[index] += 1
+        self.cache_req_time[index] = self.data_pointer
         if self.req_to_size[self.new_request] == 2:
             self.cache_freq[index+1] += 1
         if self.req_to_size[self.new_request] == 3:
             self.cache_freq[index+2] += 1
         
-        self.cache_req_time[index] = self.data_pointer
+        # req_size = self.req_to_size[self.new_request]
+        # for i in range(1, req_size):
+        #     self.cache_freq[index+i] += 1
+        #     self.cache_req_time[index+i] = self.data_pointer
+        
+        # self.cache_req_time[index] = self.data_pointer
         if self.req_to_size[self.new_request] == 2:
             self.cache_req_time[index+1] = self.data_pointer
         if self.req_to_size[self.new_request] == 3:
@@ -273,7 +266,7 @@ class Cache(object):
                 raise "No Cache Index!"
         else: return False # invalid action
             
-    def get_reward(self, action, now_victim_tz, method='hit_change'): # for evict
+    def get_reward(self, action, now_victim, method='hit_change'): # for evict
         if action > len(self.cache_blocks): raise "invalid action"
         reward = None
         if method == 'pre_len_rank': # calculate the previous request rank
@@ -300,7 +293,7 @@ class Cache(object):
             # Compute reward: R = hit reward + miss penalty
             reward = 0.0
             # find next miss_resource
-            next_miss_index, next_miss_resource_tzs, now_miss_use_count = self.find_next_miss(now_miss_index)
+            next_miss_index, next_miss_resource, now_miss_use_count = self.find_next_miss(now_miss_index)
             hit_count = next_miss_index - now_miss_index - 1
             # print(next_miss_index, next_miss_resource_tzs, now_miss_use_count, hit_count)
             reward += hit_count
@@ -308,7 +301,7 @@ class Cache(object):
             ## cal. swap-in reward
             reward += (alpha * now_miss_use_count)
             ## cal. swap-out penalty
-            if now_victim_tz in next_miss_resource_tzs:
+            if now_victim == next_miss_resource:
                 reward -= (psi / (hit_count + mu))
             # else (evict), not implement
             ## implement in self.get_reward_noEvict function
@@ -316,7 +309,7 @@ class Cache(object):
         elif method == 'zhong':
             now_miss_index = self.data_pointer
             # now_miss_resource_card = self.requests[now_miss_index]
-            now_cache_tz = self.cache_blocks.copy()
+            now_cache_ = self.cache_blocks.copy()
             # from "peihaowang" github, implement zhong's reward function
             ## start
             short_reward = 1.0
@@ -335,10 +328,8 @@ class Cache(object):
             if end > len(self.requests): end = len(self.requests)
             long_term_hit = 0
             next_reqs = self.requests[start : end]
-            for card in next_reqs:
-                temp_tg = self.card_to_tg(card)
-                temp_tzs = self.tg_to_tzs(temp_tg)
-                if temp_tzs[0] in now_cache_tz:
+            for req in next_reqs:
+                if req in now_cache_:
                     long_term_hit += 1
             # reward += beta * long_term_hit / (end - start)
             reward += beta * long_term_hit
@@ -346,7 +337,7 @@ class Cache(object):
         elif method == 'size':
             reward = self.cache_req_size[action] * 0.3
         # elif method == 'fitness':
-        #     reward = 0.5 if len(self.new_request_tzs) == self.cache_tg_size[action] else 0
+        #     reward = 0.5 if len(self.new_request_tzs) == self.cache_Ccs[action] else 0
         elif reward == None: 
             # raise "reward method error"
             reward = 0
@@ -428,17 +419,9 @@ class Cache(object):
     def get_pre_freq(self, tg):
         count = 0
         for pointer in range(self.data_pointer-1, min(0, self.data_pointer - 100), -1):
-            if self.card_to_tg(self.requests[pointer]) == tg: count += 1
+            if (self.requests[pointer]) == tg: count += 1
         return count
 
-    # def get_tg_pre_freq(self, tg, LEN):		# 2021/03/07
-    #     ## find the past frequency of "tg"
-    #     if self.data_pointer < LEN: return 0
-    #     count = 0
-    #     for pointer in range(self.data_pointer-1, self.data_pointer - LEN, -1):
-    #         if self.card_to_tg(self.requests[pointer]) == tg: count += 1
-    #     return count / LEN
-    
     def get_req_pre_freq(self, req, LEN):
         if self.data_pointer < LEN: return 0
         count = 0
@@ -446,20 +429,18 @@ class Cache(object):
             if self.requests[pointer] == req : count +=1
         return count / LEN
 
-    def get_pre_req_his(self, l):
-        if self.data_pointer - l >= 0 and self.data_pointer < self.requests_len:
-            arr = []
-            for i in range(l):
-                # print(self.data_pointer - i)
-                card = self.requests[self.data_pointer - i]
-                tg = self.card_to_tg(card)
-                # print(list(self.tg_to_onehot(tg.split('tg')[1])))
-                # arr += list(self.tg_to_onehot(tg.split('tg')[1]))
-                arr.append(list(self.tg_to_onehot(tg.split('tg')[1])))
-            # print(arr)
-            return np.array(arr)
-        else:
-            return np.array([[0] * self.onehot_len] * l)
+    # def get_pre_req_his(self, l):
+    #     if self.data_pointer - l >= 0 and self.data_pointer < self.requests_len:
+    #         arr = []
+    #         for i in range(l):
+    #             # print(self.data_pointer - i)
+    #             card = self.requests[self.data_pointer - i]
+    #             tg = self.card_to_tg(card)
+    #             arr.append(list(self.tg_to_onehot(tg.split('tg')[1])))
+    #         # print(arr)
+    #         return np.array(arr)
+    #     else:
+    #         return np.array([[0] * self.onehot_len] * l)
 
     def norm_list(self, list):
         if max(list)-min(list) == 0: return [0] * len(list)
@@ -474,6 +455,7 @@ class Cache(object):
                 feature.append(0)
         
         ## 上一次該內容的請求未命中 time epoch 到目前的 time epoch
+        ## 1*6
         if 'Ffqr_norm' in self.need_feature and self.need_feature['Ffqr_norm'] == True:
             ## normalize the rank of Ffq
             tmp_freq = self.cache_freq.copy()
@@ -498,6 +480,7 @@ class Cache(object):
             feature += tmp_freq
         
         ## 不同 term 的 frequency
+        ## 1*6
         if self.need_feature['past_freq_l'] == True: 	
             # find the past frequency of "req" (past len=cache_size x3)
             feature += [self.get_req_pre_freq(req, self.cache_size * 3) for req in self.cache_blocks.copy()]
@@ -513,11 +496,12 @@ class Cache(object):
             feature += [self.get_req_pre_freq(req, self.cache_size * 1) for req in self.cache_blocks.copy()]
             for _ in range(self.cache_size - len(self.cache_blocks)):
                 feature.append(0)
-        ## tg size(false)
-        if self.need_feature['tg_size'] == True: 
-            feature += self.cache_req_size.copy()
-            for _ in range(self.cache_size - len(self.cache_blocks)):
-                feature.append(0)
+                
+        ## 
+        # if self.need_feature['Ccs'] == True: 
+        #     feature += self.cache_req_size.copy()
+        #     for _ in range(self.cache_size - len(self.cache_blocks)):
+        #         feature.append(0)
         
         ## default = False
         if 'Fts_norm' in self.need_feature and self.need_feature['Fts_norm'] == True:
@@ -565,7 +549,7 @@ class Cache(object):
 
     def get_feature_req(self):
         feature = []
-        if self.new_req_feature['tg_size'] == True:
+        if self.new_req_feature['Ccs'] == True:
             feature.append(self.req_to_size[self.new_request])
         ## Fcr: current request data
         if self.new_req_feature['Fcr'] == True:
@@ -585,10 +569,6 @@ class Cache(object):
             size=self.cache_req_size.copy(),
             next_req=self.get_next_request_time(),  # disable it, if your hit rate is very high and dataset is very large
             feature=np.concatenate([self.get_feature(), self.get_feature_req()]),
-            # state=np.concatenate((self.get_pre_req_his(5), self.get_feature_tg())),
-            # state_h=self.get_pre_req_his(50),
-            # state_c=self.get_feature_tg().flatten(),
-            # pre_req_his=np.array(self.get_pre_req_his(10)).astype(int)
         )
 
 
@@ -598,14 +578,13 @@ def load_parameter(filepath):
 
 def main(_):
     ## load feature parameter
-    feature_parameter = load_parameter('./dataset/parameter/features/Ffqr_norm/full_norm.json')
+    feature_parameter = load_parameter('./dataset/parameter/features/Ffqr_norm/full_new_norm.json')
     logging.info("Feature parameter :\n %s", feature_parameter)
     ## setting DQN parameter
     need_feature = feature_parameter["need_feature"]
     new_req_feature = feature_parameter["new_req_feature"]
     env = Cache(
         file_name='1.txt',
-        user_file_name='c42tg12tz2',
         req_size_file_name='gen1',
         cache_size=5, 
         # feature
@@ -618,8 +597,6 @@ def main(_):
         penalty_parameter=0.15
     )
     env.reset()
-    env.save_txt('cache_block_1', env.cache_blocks)
-    logging.info(env.cache_req_size)
 if __name__ == '__main__':
     app.run(main)
     

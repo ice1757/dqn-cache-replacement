@@ -3,15 +3,15 @@
     {
         "freq":false,
         "Ffqr_norm":true,
-        "Ccs":true,
+        "Ccs":false,
         "Fts_norm":false,
         "rect":true,
         "Frtr_norm":false,
-        "Far":true,
+        "Far":false,
         "past_freq_l":true,
         "past_freq_m":true,
         "past_freq_s":true,
-        "remains":false
+        "remains":true
     },
     "new_req_feature":
     {

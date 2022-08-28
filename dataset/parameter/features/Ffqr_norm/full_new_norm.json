@@ -3,7 +3,7 @@
     {
         "freq":false,
         "Ffqr_norm":true,
-        "tg_size":false,
+        "Ccs":false,
         "Fts_norm":false,
         "rect":true,
         "Frtr_norm":false,
@@ -15,7 +15,7 @@
     },
     "new_req_feature":
     {
-        "tg_size":true,
+        "Ccs":true,
         "Fcr":true,
         "freq":false
     }

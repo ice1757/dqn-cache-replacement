@@ -3,7 +3,7 @@
     {
         "freq":false,
         "Ffqr_norm":true,
-        "Ccs":true,
+        "Ccs":false,
         "Fts_norm":false,
         "rect":true,
         "Frtr_norm":false,

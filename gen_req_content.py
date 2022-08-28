@@ -12,19 +12,21 @@ def save_access_data(file_name, access_list):
 
 if __name__ == "__main__":
 
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 7:
         print("Usage: %s <file_name> <num_resources> <max_content_size> " % sys.argv[0])
         exit(0)
     
     file_name = sys.argv[1]
     num_resource = int(sys.argv[2]) ## 幾種
     max_content_size = int(sys.argv[3])
-    # param = float(sys.argv[4])
+    w1 = int(sys.argv[4]) 
+    w2 = int(sys.argv[5])
+    w3 = int(sys.argv[6])
 
     size_ar = [i+1 for i in range(max_content_size)]
     # weight_ar = [10 for i in range(max_content_size-1)]
     # weight_ar.insert(0, 100-(10*(max_content_size-1)))
-    weight_ar = [80, 10, 10]
+    weight_ar = [w1, w2, w3]
     req_to_size = {}
     cn =[0, 0, 0]
     

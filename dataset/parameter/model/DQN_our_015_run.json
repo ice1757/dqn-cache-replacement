@@ -1,0 +1,18 @@
+{
+    "DQN":
+    {
+        "train_episodes":100,
+        "train_step":5,
+        "start_train_step":10,
+        "learning_rate":0.0001,
+        "discount_factor":0.9,
+        "e_greedy":0.9,
+        "replace_target_iter":10,
+        "memory_size":25000,
+        "batch_size":128,
+        "e_greedy_increment":0.01,
+        "layers":[32,16]
+    },
+    "reward_function":"our",
+    "penalty_parameter":0.15
+}

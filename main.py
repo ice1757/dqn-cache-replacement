@@ -18,7 +18,7 @@ from agents.model_DQN import DQN
 from ENV.new_Cache_test import Cache
 from Func import Temp_Memory
 # from func_draw import plot_, plot_multi
-from func_loader import save_immediate_reward, check_folder, save_long_term_reward, load_parameter, save_hit_rate, cnt_diff_hit_rate, savetxt, jwrt
+from func_loader import save_immediate_reward, check_folder, save_long_term_reward, load_parameter, save_hit_rate, cnt_diff_hit_rate, savetxt, savetxt_look, jwrt
 
 random.seed(1234)
 
@@ -27,7 +27,6 @@ FLAGS = flags.FLAGS
 flags.DEFINE_integer('cache_size', 5, 'set cache_size', lower_bound=0)
 flags.DEFINE_string('experiment_name', 't1', 'the experiment name')
 flags.DEFINE_string('dataset', 'paper8_data_orig', 'the dataset stored in the folder ./dataset')
-flags.DEFINE_string('user_dataset', 'c42tg12tz2', 'the user dataset stored in the folder ./dataset/userdata')
 flags.DEFINE_string('req_to_size_dataset', 'gen1', 'the requests correspond to its size stored in the folder ./dataset/userdata')
 flags.DEFINE_string('model_filepath', None, 'the filepath of model parameters')
 flags.DEFINE_string('feature_filepath', './dataset/parameter/features/Ffqr_norm/full_norm.json', 'the filepath of feature combinations')
@@ -36,13 +35,12 @@ def main(argv):
     cache_size = FLAGS.cache_size
     experiment_name = FLAGS.experiment_name
     file_name = FLAGS.dataset
-    user_file_name = FLAGS.user_dataset # user_file_name='c48tg14tz3'
     req_size_file_name = FLAGS.req_to_size_dataset
     skip_hit = True
     skip_evict = False
     record_reward = True
     record_cost = True
-    assist_learn = [LFU(), LRU(), SIZE()] 					# None, LRU(), LFU(),...
+    assist_learn = [LFU(), LRU()] 					# None, LRU(), LFU(),...
     # assist_learn = None
     normalize_reward = True					# you need to set this, if delay reward == True # unused
     upset_memory = False
@@ -87,7 +85,6 @@ def main(argv):
 
     env = Cache(
         file_name=file_name,
-        user_file_name=user_file_name,
         cache_size=cache_size, 
         req_size_file_name = req_size_file_name,
         # feature
@@ -109,16 +106,15 @@ def main(argv):
 
     agents = dict()
     peep_ = belady()
+    save_path = "./logs/"+experiment_name+"/"+file_name+"_c"+str(cache_size)+"_"+req_size_file_name+"/"+model_name+'_'+feature_name
     if not FLAGS.model_filepath:
-        # agents['FIFO'] = FIFO()
-        # agents['LRU']  = LRU()
+        agents['FIFO'] = FIFO()
+        agents['LRU']  = LRU()
         agents['LFU']  = LFU()
-        # # agents['SIZE']  = SIZE()
-        # # agents['m_metric']  = m_metric()
-        # agents['random']  = Random()
-        # agents['GDS'] = "GDS"
-        # agents['belady']  = belady()
-        # agents['belady_size'] = belady_size()
+        agents['random']  = Random()
+        agents['GDS'] = "GDS"
+        agents['belady']  = belady()
+        agents['belady_size'] = belady_size()
         
     else:
         n_features = need_feature_len * cache_size + new_req_feature_len
@@ -140,7 +136,7 @@ def main(argv):
     logging.info("Agent: %s", agents)
     # heu_run = 1
     start_time = time.time()
-    save_path = "./logs/"+experiment_name+"/"+file_name+"_c"+str(cache_size)+"_"+req_size_file_name+"/"+model_name+'_'+feature_name
+    
     if save_hit or record_reward: 
         if not check_folder(save_path): raise 'check_folder error 1'
     jwrt(f'{save_path}_f', feature_parameter)
@@ -151,7 +147,7 @@ def main(argv):
     for method, agent in agents.items():
         if method == "GDS" : heu_run = 5 
         else : heu_run = 1
-        episodes = train_episodes if method == "DQN" or method == "DRQN" or method == "AC" or method == "DDPG"  else heu_run
+        episodes = train_episodes if method == "DQN"  else heu_run
         hit_rates = []
         if record_reward: 
             episode_ireward = [] # immediate
@@ -170,7 +166,7 @@ def main(argv):
             if method == "DQN":
                 TM.reset()
                 # agent.mem_reset()
-            # savetxt('l1', f'{step}')
+            # savetxt_look('cache_block', f'{step}')
             with tqdm.tqdm(total=env.requests_len, disable=False) as pbar:
                 while not done:
                     # savetxt(f'./look/cache_block', f'{env.new_request}, {env.cache_blocks}, {env.cache_freq}')
@@ -184,7 +180,7 @@ def main(argv):
                             break
                         else:
                             a = agent.choose_action(s)
-                        # savetxt(f'./look/cache_block', f'{env.new_request}, {env.cache_blocks}, {a}')
+                        # savetxt_look(f'cache_block', f'{env.new_request}, {env.cache_blocks}, {a}, {env.cache_freq}')
                         if a < len(env.cache_blocks): 
                             victim = env.cache_blocks[a]
                             break # valid action
@@ -245,7 +241,7 @@ def main(argv):
             if record_cost and method == "DQN":
                 episode_cost.append(np.mean(agent.cost_his))
                 agent.cost_his = []
-            save_hit_rate(save_path, hit_rates, method+'_'+feature_name+'_'+str(episode)+'_hitrate')
+            save_hit_rate(save_path, hit_rates, method+'_'+feature_name+'_hitrate')
         end_time = time.time()
         print("time :", end_time-start_time)
         print("avg hit rate :", sum(hit_rates) / len(hit_rates))

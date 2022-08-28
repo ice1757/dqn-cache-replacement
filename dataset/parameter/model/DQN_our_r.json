@@ -1,9 +1,9 @@
 {
     "DQN":
     {
-        "train_episodes":30,
+        "train_episodes":300,
         "train_step":5,
-        "start_train_step":100,
+        "start_train_step":10,
         "learning_rate":0.0001,
         "discount_factor":0.9,
         "e_greedy":0.9,
