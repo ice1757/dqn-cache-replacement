@@ -32,7 +32,7 @@
   ```
 - Generate random content size
   ```
-  python gen_req_content.py <檔案名稱> <request種類> <content size 1 比例> <content size 2 比例> <content size 3 比例>
+  python gen_req_content.py <檔案名稱> <> <content size 1 比例> <content size 2 比例> <content size 3 比例>
   ```
 - Trace will be saved in dataset/req_trace
 - Content size will be saved in dataset/req_data
@@ -49,7 +49,7 @@
 - Evaluation for DQN
   ```
   python main.py \
-    --cache_size=10 \ 
+    --cache_size=10 \
     --experiment_name='DQN' \
     --dataset='snm_50_l9666.txt' \
     --req_to_size_dataset='size_50_' \
