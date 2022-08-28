@@ -49,7 +49,7 @@
 - Evaluation for DQN
   ```
   python main.py \
-    --cache_size=10 \ 
+    --cache_size=10 \
     --experiment_name='DQN' \
     --dataset='snm_50_l9666.txt' \
     --req_to_size_dataset='size_50_' \
