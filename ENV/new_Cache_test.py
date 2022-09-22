@@ -498,10 +498,10 @@ class Cache(object):
                 feature.append(0)
                 
         ## 
-        # if self.need_feature['Ccs'] == True: 
-        #     feature += self.cache_req_size.copy()
-        #     for _ in range(self.cache_size - len(self.cache_blocks)):
-        #         feature.append(0)
+        if self.need_feature['Ccs'] == True: 
+            feature += self.cache_req_size.copy()
+            for _ in range(self.cache_size - len(self.cache_blocks)):
+                feature.append(0)
         
         ## default = False
         if 'Fts_norm' in self.need_feature and self.need_feature['Fts_norm'] == True:

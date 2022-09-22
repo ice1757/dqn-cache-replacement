@@ -23,7 +23,7 @@ def gen_snm(file_name, req_kind):
     df_train = None
     df_valid = None
 
-    T = 90  # shot duration
+    T = 80  # shot duration
     M = req_kind  # 內容種類數量
     alpha = 0.8  # 冪律參數
     u_mean = 2 # 平均熱度 lambda
@@ -69,7 +69,7 @@ def gen_snm(file_name, req_kind):
     else:
         df_train = pd.concat((df_train, tmp_train), axis = 0)
         df_valid = pd.concat((df_valid, tmp_valid), axis = 0)
-    if len(requestseq) >= 9000 and  len(requestseq) <= 9999: #snm_100_l9659
+    if len(requestseq) >= 9000 and  len(requestseq) <= 9999: 
         df_train.to_csv(f'{file_name}_l{len(hex_requestseq)}_train.csv', index = False, header = False)
         df_valid.to_csv(f'{file_name}_l{len(hex_requestseq)}_valid.csv', index = False, header = False)
         save_access_data(f'{file_name}_l{len(requestseq)}', requestseq)

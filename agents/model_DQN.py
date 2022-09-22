@@ -129,7 +129,7 @@ class DQN:
         with tf.variable_scope('loss'):
             self.loss = tf.reduce_mean(tf.squared_difference(self.q_target, self.q_eval_wrt_a, name='TD_error'))
         with tf.variable_scope('train'):
-            self._train_op = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
+            self._train_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
             # AdamOptimizer RMSPropOptimizer
 
     def get_key_if_len_gt(self, now_time, len_limit):
